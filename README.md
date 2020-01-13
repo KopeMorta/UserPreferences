@@ -1,12 +1,16 @@
-#UserPreferences
+# UserPreferences
+
 Small Utility for manage User Preferences
 
-##What for
+## What for
+
 Provides the functionality of two-way object update.
 There is an object in which user settings are stored, and we want these parameters to be automatically updated in the file if the object has been changed. 
 Conversely, the object will be updated when the user edits the file.
 
-##Using
+
+## Using
+
 More in [Example Package](./src/main/java/example)
 ```java
 import com.kopemorta.userpreferences.Config;

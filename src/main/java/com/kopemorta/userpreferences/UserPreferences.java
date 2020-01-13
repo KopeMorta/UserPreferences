@@ -1,9 +1,6 @@
 package com.kopemorta.userpreferences;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
-import com.kopemorta.userpreferences.util.Util;
 
 import java.io.File;
 import java.io.FileReader;
@@ -12,7 +9,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -22,59 +18,71 @@ public abstract class UserPreferences {
 
     private static final Logger LOGGER = Logger.getLogger(UserPreferences.class.getName());
 
+    private static Config CONFIG;
+    private static final List<UserPreferences> INSTANCES_REGISTRY = new CopyOnWriteArrayList<>();
 
-    private static final List<UserPreferences> INSTANCES_REGISTRY;
-    private static final Gson GSON;
-    private static final ScheduledExecutorService EXECUTOR;
-
-    static {
-        INSTANCES_REGISTRY = new CopyOnWriteArrayList<>();
-
-
-        GSON = new GsonBuilder()
-                .setPrettyPrinting()
-                .disableHtmlEscaping()
-                .create();
-
-
-        (EXECUTOR = Util.createScheduledService("User Preferences Updater"))
-                .scheduleWithFixedDelay(UserPreferences::scheduledTask, 20, 20, TimeUnit.MILLISECONDS);
-    }
 
     private transient ReentrantLock lock = new ReentrantLock();
     private transient int lashHashCode = -1;
     private transient long lastModified = -1L;
 
-    public static void register(final UserPreferences instance) {
+
+    public static void init(final Config config) {
+        if (CONFIG != null) // Инициализировать можно только 1 раз :|
+            return;
+
+        CONFIG = config;
+        CONFIG.getScheduledExecutor() // запуск демона
+                .scheduleWithFixedDelay(UserPreferences::scheduledTask,
+                        CONFIG.getInitialDelay(),
+                        CONFIG.getDelay(),
+                        TimeUnit.MILLISECONDS);
+    }
+
+    public static void registerInstance(final UserPreferences instance) {
+        if (CONFIG == null) // Если не был задан кастомный конфиг - создаём дефолтный
+            init(Config.builder().build());
+
         INSTANCES_REGISTRY.add(instance);
     }
 
+
+    /*
+     * Основная логика.
+     * Проходим по списку с экземплярами, смотрим обновились они или их файл на диске.
+     */
     private static void scheduledTask() {
         try {
             for (UserPreferences instance : INSTANCES_REGISTRY) {
+                // если файл на диске новей чем в памяти и он существует - загружаем его с диска
                 if (instance.lastModified < instance.userPreferencesFile().lastModified())
                     if (instance.userPreferencesFile().exists())
                         instance.updateFromFile();
 
 
+                // если экземпляр обновился - сохраняем новую версию в файле
                 if (instance.lashHashCode != instance.hashCode())
                     instance.updateToFile();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception e) { // Если не поймать ошибку о ней никогда и не узнать
+            LOGGER.log(Level.SEVERE, "Unknown exception", e);
         }
     }
 
     private void updateToFile() {
-        lock.lock();
+        lock.lock(); // что бы не загружать файл с диска и сразу же его обновлять
         try {
-            final String objInStr = GSON.toJson(this, this.getClass());
-            try (FileWriter fw = new FileWriter(userPreferencesFile())) {
-                fw.write(objInStr);
+            { // Объект в строку и её на диск
+                final String objInStr = CONFIG.getGson().toJson(this, this.getClass());
+                try (FileWriter fw = new FileWriter(userPreferencesFile())) {
+                    fw.write(objInStr);
+                }
             }
 
-            this.lashHashCode = this.hashCode();
-            this.lastModified = this.userPreferencesFile().lastModified();
+            { // Обновляем метки
+                this.lashHashCode = this.hashCode();
+                this.lastModified = this.userPreferencesFile().lastModified();
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Saving object exception", e);
         } finally {
@@ -82,25 +90,28 @@ public abstract class UserPreferences {
         }
     }
 
-
     private void updateFromFile() {
-        lock.lock();
+        lock.lock(); // что бы не загружать файл с диска и сразу же его обновлять
         try {
             UserPreferences userPreferencesObj;
+            // Читаем файл и преобразуем в объект
             try (JsonReader jsonReader = new JsonReader(new FileReader(userPreferencesFile()))) {
-                userPreferencesObj = GSON.fromJson(jsonReader, this.getClass());
+                userPreferencesObj = CONFIG.getGson().fromJson(jsonReader, this.getClass());
             }
 
 
+            // Если что-то пошло не так (иногда бывает)
             if (userPreferencesObj == null) {
-                LOGGER.log(Level.WARNING, "On updating object from file received empty data");
+                LOGGER.log(Level.INFO, "On updating object from file received empty data");
                 return;
             }
 
             this.updateFields(userPreferencesObj);
 
-            this.lashHashCode = this.hashCode();
-            this.lastModified = this.userPreferencesFile().lastModified();
+            { // Обновляем метки
+                this.lashHashCode = this.hashCode();
+                this.lastModified = this.userPreferencesFile().lastModified();
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Updating object exception", e);
         } finally {
@@ -109,6 +120,11 @@ public abstract class UserPreferences {
     }
 
 
+    /*
+     * Тут происходит обновление полей текущего объекта и всех его родителей.
+     * Поле не будет обновленно если оно содержит один из следующих модификаторов:
+     * transient, final, static
+     */
     private void updateFields(final UserPreferences newUserPreferences) throws IllegalAccessException {
         Class<?> thisCurrentClass = this.getClass();
         Class<?> newCurrentClass = newUserPreferences.getClass();
@@ -132,8 +148,11 @@ public abstract class UserPreferences {
         }
     }
 
+
+    // Файл с настройками, с ним и происходит вся работа
     protected abstract File userPreferencesFile();
 
+    // Принудительное наследование, т.к. в этом класе этот метод активно используется
     public abstract int hashCode();
 
     public abstract boolean equals(Object obj);

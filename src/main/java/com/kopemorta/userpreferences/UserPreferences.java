@@ -127,10 +127,7 @@ public abstract class UserPreferences {
      */
     private void updateFields(final UserPreferences newUserPreferences) throws IllegalAccessException {
         Class<?> thisCurrentClass = this.getClass();
-        Class<?> newCurrentClass = newUserPreferences.getClass();
-        for (; thisCurrentClass != null && newCurrentClass != null;
-             thisCurrentClass = thisCurrentClass.getSuperclass(), newCurrentClass = newCurrentClass.getSuperclass()) {
-
+        for (; thisCurrentClass != null; thisCurrentClass = thisCurrentClass.getSuperclass()) {
             final Field[] fields = thisCurrentClass.getDeclaredFields();
             for (final Field field : fields) {
                 if (Modifier.isTransient(field.getModifiers()) ||

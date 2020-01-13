@@ -17,7 +17,7 @@ public class InheritTest extends Test {
         newInheritedObj.test5 = "6";
         newInheritedObj.test6 = 7L;
 
-        firstInheritedObj.updateFields(newInheritedObj);
+//        firstInheritedObj.updateFields(newInheritedObj);
 
         System.out.println(firstInheritedObj.test1);
         System.out.println(firstInheritedObj.test2);

@@ -18,7 +18,7 @@ public class Test extends UserPreferences {
         newObj.test2 = "3";
         newObj.test3 = 4L;
 
-        firstObj.updateFields(newObj);
+//        firstObj.updateFields(newObj);
 
         System.out.println(newObj.test1);
         System.out.println(newObj.test2);
@@ -36,7 +36,7 @@ public class Test extends UserPreferences {
     }
 
     @Override
-    public boolean equals() {
+    public boolean equals(Object obj) {
         return false;
     }
 }

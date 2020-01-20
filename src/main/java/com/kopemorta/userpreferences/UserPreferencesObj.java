@@ -17,9 +17,9 @@ class UserPreferencesObj {
 
     private final UserPreferences userPreferences;
 
-    private transient ReentrantLock lock;
-    private transient int lashHashCode;
-    private transient long lastModified;
+    private ReentrantLock lock;
+    private int lashHashCode;
+    private long lastModified;
 
 
     UserPreferencesObj(final UserPreferences userPreferences) {

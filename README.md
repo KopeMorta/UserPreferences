@@ -16,8 +16,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.File;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 
 public class Example {
 
@@ -40,14 +38,13 @@ public class Example {
          */
         settings.setConTimeout(231);
         settings.setMyCustomFile(new File("new file"));
-        settings.setMyProxy(Proxy.NO_PROXY);
         settings.setMySuperString("MY VERY SUPER STRING !!!");
     }
 }
 
 
 @EqualsAndHashCode(callSuper = false)
-class Settings extends UserPreferences {
+class Settings implements UserPreferences {
 
     private static final File PREF_FILE = new File("settings.cfg");
 
@@ -73,10 +70,6 @@ class Settings extends UserPreferences {
 
     @Getter
     @Setter
-    private Proxy myProxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 9150));
-
-    @Getter
-    @Setter
     private long timeout = 25;
 
     @Getter
@@ -97,9 +90,9 @@ class Settings extends UserPreferences {
 
 
     @Override
-    protected File userPreferencesFile() {
+    public File userPreferencesFile() {
         return PREF_FILE;
     }
-
+    
 }
 ```

@@ -25,9 +25,6 @@ public class SimpleExample {
 
 
         { // Проверяем стандартные настройки
-            Thread.sleep(1111); // ждем, что бы файл обновится успел
-
-
             Util.checkInstance(preferences, 123, 1234L, "my custom string field @!!##^%#^463*)^$%*#RF{F");
             Util.checkFile(PREF_FILE, 123, 1234L, "my custom string field @!!##^%#^463*)^$%*#RF{F");
 
@@ -96,7 +93,7 @@ public class SimpleExample {
     @ToString
     @Getter
     @Setter
-    private static class SimpleExamplePref extends UserPreferences {
+    private static class SimpleExamplePref implements UserPreferences {
 
         private int myIntegerField = 123;
         private long myLongField = 1234L;
@@ -104,7 +101,7 @@ public class SimpleExample {
 
 
         @Override
-        protected File userPreferencesFile() {
+        public File userPreferencesFile() {
             return PREF_FILE;
         }
     }

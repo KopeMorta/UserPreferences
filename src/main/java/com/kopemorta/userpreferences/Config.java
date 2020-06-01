@@ -12,10 +12,10 @@ import java.util.concurrent.ScheduledExecutorService;
 @Builder
 public class Config {
     @Builder.Default
-    private ScheduledExecutorService scheduledExecutor = createScheduledService("UserPreferences Service");
+    private final ScheduledExecutorService scheduledExecutor = createScheduledService("UserPreferences Service");
 
     @Builder.Default
-    private Gson gson = new GsonBuilder()
+    private final Gson gson = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .serializeNulls()
@@ -23,10 +23,10 @@ public class Config {
             .create();
 
     @Builder.Default
-    private int initialDelay = 20;
+    private final int initialDelay = 20;
 
     @Builder.Default
-    private int delay = 100;
+    private final int delay = 100;
 
 
 

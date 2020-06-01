@@ -1,11 +1,16 @@
 package com.kopemorta.userpreferences;
 
 import com.google.gson.stream.JsonReader;
+import lombok.AccessLevel;
+import lombok.Getter;
 
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,14 +21,33 @@ class UserPreferencesObj {
 
 
     private final UserPreferences userPreferences;
+    private final List<RegisterOption> registerOptions;
 
-    private ReentrantLock lock;
+    private final ReentrantLock lock;
+
+    @Getter(AccessLevel.PACKAGE)
     private int lashHashCode;
+    @Getter(AccessLevel.PACKAGE)
     private long lastModified;
 
 
-    UserPreferencesObj(final UserPreferences userPreferences) {
+    UserPreferencesObj(final UserPreferences userPreferences,
+                       final RegisterOption[] registerOptions) {
+
+        if (registerOptions == null || registerOptions.length <= 0)
+            throw new IllegalArgumentException("Bad RegisterOptions.");
+
         this.userPreferences = userPreferences;
+        this.registerOptions = new ArrayList<>();
+        for(RegisterOption registerOption : registerOptions) {
+            final Optional<RegisterOption> alreadyPresentOpt = haveRegisterOption(registerOption);
+            //noinspection StatementWithEmptyBody
+            if(alreadyPresentOpt.isPresent()) {
+                // just ignore duplicate option
+            } else {
+                this.registerOptions.add(registerOption);
+            }
+        }
 
         this.lock = new ReentrantLock();
         this.lashHashCode = -1;
@@ -31,16 +55,8 @@ class UserPreferencesObj {
     }
 
 
-    int getLashHashCode() {
-        return lashHashCode;
-    }
-
     int getCurrentHashCode() {
         return userPreferences.hashCode();
-    }
-
-    long getFileLastModified() {
-        return lastModified;
     }
 
     long getCurrentFileLastModified() {
@@ -49,6 +65,15 @@ class UserPreferencesObj {
 
     boolean fileExists() {
         return userPreferences.userPreferencesFile().exists();
+    }
+
+    Optional<RegisterOption> haveRegisterOption(final RegisterOption registerOption) {
+        for (RegisterOption option : registerOptions) {
+            if(option.getClass().isInstance(registerOption))
+                return Optional.of(option);
+        }
+
+        return Optional.empty();
     }
 
 
